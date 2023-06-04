@@ -2,7 +2,7 @@ import pyautogui
 import socket
 
 # Change these variables with your remote machine's details
-REMOTE_HOST = '192.168.0.100'  # Remote machine's IP address
+REMOTE_HOST = '192.168.116.129'  # Remote machine's IP address
 REMOTE_PORT = 5000  # Remote machine's port number
 
 def connect_to_remote():
