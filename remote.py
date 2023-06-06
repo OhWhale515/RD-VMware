@@ -1,39 +1,74 @@
-import pyautogui
-import socket
+import boto3
+import paramiko
 
-# Change these variables with your remote machine's details
-REMOTE_HOST = '192.168.116.129'  # Remote machine's IP address
-REMOTE_PORT = 5000  # Remote machine's port number
+# EC2 instance details
+instance_id1 = 'i-08c9e99022a077e2e'
+instance_id2 = 'i-0ad735898c7080c7b'
 
-def connect_to_remote():
-    # Connect to the remote machine
-    remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    remote_socket.connect((REMOTE_HOST, REMOTE_PORT))
-    return remote_socket
+# SSH key pair details
+key_name = 'rdpkeypair'
+private_key_path = r'C:\Users\sterl\Downloads\rdp-keypair.pem'
 
-def send_mouse_position(remote_socket, x, y):
-    # Send the mouse position to the remote machine
-    position = f"{x},{y}"
-    remote_socket.send(position.encode())
+# Connect to EC2 instances
+ec2 = boto3.resource('ec2')
 
-def remote_desktop():
-    remote_socket = connect_to_remote()
-    while True:
-        try:
-            # Receive the mouse position from the remote machine
-            position = remote_socket.recv(1024).decode()
-            if not position:
-                break
-            x, y = position.split(",")
-            x, y = int(x), int(y)
+instance1 = ec2.Instance(instance_id1)
+instance2 = ec2.Instance(instance_id2)
 
-            # Move the mouse on the local machine
-            pyautogui.moveTo(x, y, duration=0.1)
-        except Exception as e:
-            print(f"Error: {e}")
-            break
+# Get public IP addresses
+ip_address1 = instance1.public_ip_address
+ip_address2 = instance2.public_ip_address
 
-    remote_socket.close()
+# Establish SSH connection to instance 1
+ssh_client1 = paramiko.SSHClient()
+ssh_client1.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-if __name__ == '__main__':
-    remote_desktop()
+ssh_client1.connect(ip_address1, username='ec2-user', key_filename=private_key_path)
+
+# Establish SSH connection to instance 2
+ssh_client2 = paramiko.SSHClient()
+ssh_client2.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+ssh_client2.connect(ip_address2, username='ec2-user', key_filename=private_key_path)
+
+# Execute remote commands on instance 1
+stdin, stdout, stderr = ssh_client1.exec_command('ls')  # List files in the current directory
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client1.exec_command('pwd')  # Print the current working directory
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client1.exec_command('echo "Hello, Instance 1"')  # Echo a message
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client1.exec_command('whoami')  # Get the username of the current user
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client1.exec_command('df -h')  # Check disk usage
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client1.exec_command('ps aux')  # List running processes
+print(stdout.read().decode())
+
+# Execute remote commands on instance 2
+stdin, stdout, stderr = ssh_client2.exec_command('ls')  # List files in the current directory
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client2.exec_command('pwd')  # Print the current working directory
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client2.exec_command('echo "Hello, Instance 2"')  # Echo a message
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client2.exec_command('uname -a')  # Get the system information
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client2.exec_command('free -m')  # Check memory usage
+print(stdout.read().decode())
+
+stdin, stdout, stderr = ssh_client2.exec_command('netstat -tuln')  # List open network ports
+print(stdout.read().decode())
+
+# Close SSH connections
+ssh_client1.close()
+ssh_client2.close()
